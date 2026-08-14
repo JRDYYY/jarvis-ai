@@ -1,1 +1,795 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="JARVIS">
+    <meta name="theme-color" content="#05080f">
+    <meta name="description" content="J.A.R.V.I.S. — Just A Rather Very Intelligent System">
+    <title>J.A.R.V.I.S.</title>
+    <style>
+/* ===== JARVIS Theme ===== */
+:root {
+    --bg: #05080f;
+    --bg-panel: rgba(10, 20, 40, 0.75);
+    --cyan: #00d4ff;
+    --cyan-dim: #00a8cc;
+    --cyan-glow: rgba(0, 212, 255, 0.4);
+    --white: #e8f4ff;
+    --gray: #8ba3b8;
+    --red: #ff3b5c;
+    --green: #00ff9d;
+    --orange: #ffaa00;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
 
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font);
+    font-size: 15px;
+}
+
+#app {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: 
+        radial-gradient(ellipse at 50% 30%, rgba(0, 80, 140, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(0, 40, 100, 0.1) 0%, transparent 50%),
+        var(--bg);
+}
+
+.scanlines {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    z-index: 100;
+    opacity: 0.35;
+}
+
+.vignette {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%);
+    z-index: 99;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+    background: rgba(0, 10, 25, 0.65);
+    backdrop-filter: blur(12px);
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.logo-text {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan-glow);
+}
+
+.logo-sub {
+    display: block;
+    font-size: 0.6rem;
+    color: var(--gray);
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+}
+
+.status-bar { display: flex; gap: 14px; }
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--gray);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gray);
+    box-shadow: 0 0 6px currentColor;
+}
+
+.status-dot.online { background: var(--green); color: var(--green); }
+.status-dot.listening { background: var(--cyan); color: var(--cyan); animation: pulse-dot 1s infinite; }
+.status-dot.thinking { background: var(--orange); color: var(--orange); animation: pulse-dot 0.6s infinite; }
+.status-dot.error { background: var(--red); color: var(--red); }
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+/* HUD */
+.hud {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 8px;
+}
+
+.orb-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    z-index: 5;
+}
+
+.orb {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.orb-core {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #00f0ff, #0066aa 60%, #003355);
+    box-shadow: 0 0 30px var(--cyan-glow), 0 0 60px rgba(0,150,255,0.3), inset 0 0 20px rgba(255,255,255,0.2);
+    transition: all 0.4s ease;
+    z-index: 3;
+}
+
+.orb.listening .orb-core {
+    background: radial-gradient(circle at 35% 35%, #00ffcc, #00aaff 60%, #005588);
+    box-shadow: 0 0 40px rgba(0,255,200,0.5), 0 0 80px rgba(0,200,255,0.3);
+    animation: core-pulse 1.2s ease-in-out infinite;
+}
+
+.orb.thinking .orb-core {
+    background: radial-gradient(circle at 35% 35%, #ffcc00, #ff8800 60%, #aa4400);
+    box-shadow: 0 0 40px rgba(255,180,0,0.5);
+    animation: core-pulse 0.7s ease-in-out infinite;
+}
+
+.orb.speaking .orb-core {
+    background: radial-gradient(circle at 35% 35%, #00ff99, #00cc66 60%, #008844);
+    box-shadow: 0 0 40px rgba(0,255,150,0.5);
+    animation: core-speak 0.4s ease-in-out infinite;
+}
+
+.orb.error .orb-core {
+    background: radial-gradient(circle at 35% 35%, #ff5577, #cc2244 60%, #880022);
+    box-shadow: 0 0 40px rgba(255,50,80,0.5);
+}
+
+@keyframes core-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
+@keyframes core-speak {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+.orb-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 212, 255, 0.3);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.ring-1 { width: 85px; height: 85px; animation: spin 12s linear infinite; border-style: dashed; }
+.ring-2 { width: 115px; height: 115px; animation: spin-rev 18s linear infinite; border-color: rgba(0,180,255,0.2); }
+.ring-3 { width: 145px; height: 145px; animation: spin 25s linear infinite; border-color: rgba(0,150,255,0.15); border-style: dotted; }
+
+@keyframes spin { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+@keyframes spin-rev { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(-360deg); } }
+
+.state-label {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    color: var(--cyan);
+    text-shadow: 0 0 10px var(--cyan-glow);
+    text-align: center;
+    min-height: 1.2em;
+}
+
+/* Side panels - hidden on small screens */
+.panel {
+    position: absolute;
+    top: 16px;
+    width: 160px;
+    background: var(--bg-panel);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    backdrop-filter: blur(10px);
+    font-size: 0.72rem;
+}
+
+.panel-left { left: 12px; }
+.panel-right { right: 12px; display: flex; flex-direction: column; gap: 7px; }
+
+.panel-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    color: var(--cyan-dim);
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(0,212,255,0.15);
+    padding-bottom: 5px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    color: var(--gray);
+}
+.info-row span:last-child { color: var(--white); font-family: var(--mono); }
+
+.tool-btn {
+    background: rgba(0,100,180,0.2);
+    border: 1px solid rgba(0,212,255,0.25);
+    color: var(--cyan);
+    padding: 7px 9px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+.tool-btn:active {
+    background: rgba(0,150,255,0.35);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan-glow);
+}
+
+/* Chat */
+.chat-section {
+    flex-shrink: 0;
+    max-height: 28vh;
+    overflow: hidden;
+    border-top: 1px solid rgba(0,212,255,0.12);
+    background: rgba(0,8,20,0.75);
+    backdrop-filter: blur(8px);
+}
+
+.chat-messages {
+    height: 100%;
+    overflow-y: auto;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.message { max-width: 92%; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.user { align-self: flex-end; }
+.message.user .msg-content {
+    background: rgba(0,100,200,0.25);
+    border: 1px solid rgba(0,180,255,0.3);
+    border-radius: 14px 14px 4px 14px;
+}
+.message.assistant .msg-content {
+    background: rgba(0,40,80,0.4);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 14px 14px 14px 4px;
+}
+.message.system .msg-content {
+    background: transparent;
+    border: none;
+    color: var(--cyan-dim);
+    font-size: 0.82rem;
+    text-align: center;
+    width: 100%;
+}
+
+.msg-content {
+    padding: 9px 13px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+/* Input */
+.input-area {
+    flex-shrink: 0;
+    padding: 10px 14px 18px;
+    background: rgba(0,5,15,0.92);
+    border-top: 1px solid rgba(0,212,255,0.15);
+    z-index: 20;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,30,60,0.5);
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 30px;
+    padding: 5px 6px 5px 5px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+.input-wrapper:focus-within {
+    border-color: var(--cyan);
+    box-shadow: 0 0 18px var(--cyan-glow);
+}
+
+.mic-btn, .send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,120,200,0.3);
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.mic-btn:active, .send-btn:active {
+    background: rgba(0,180,255,0.45);
+    box-shadow: 0 0 14px var(--cyan-glow);
+}
+.mic-btn.listening {
+    background: var(--cyan);
+    color: #003344;
+    animation: mic-pulse 1s infinite;
+}
+@keyframes mic-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,212,255,0.5); }
+    50% { box-shadow: 0 0 0 11px rgba(0,212,255,0); }
+}
+
+#text-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--white);
+    font-size: 1rem;
+    padding: 7px 4px;
+}
+#text-input::placeholder { color: var(--gray); opacity: 0.7; }
+
+.voice-hint {
+    text-align: center;
+    font-size: 0.68rem;
+    color: var(--gray);
+    margin-top: 7px;
+    opacity: 0.85;
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+    .panel { display: none; }
+    .orb { width: 125px; height: 125px; }
+    .orb-core { width: 48px; height: 48px; }
+    .ring-1 { width: 72px; height: 72px; }
+    .ring-2 { width: 96px; height: 96px; }
+    .ring-3 { width: 120px; height: 120px; }
+    .logo-sub { display: none; }
+    .chat-section { max-height: 32vh; }
+}
+
+@media (max-height: 600px) {
+    .orb { width: 95px; height: 95px; }
+    .orb-core { width: 38px; height: 38px; }
+    .ring-1 { width: 58px; height: 58px; }
+    .ring-2 { width: 76px; height: 76px; }
+    .ring-3 { width: 94px; height: 94px; }
+    .chat-section { max-height: 26vh; }
+}
+
+@supports (padding: max(0px)) {
+    .header { padding-top: max(12px, env(safe-area-inset-top)); }
+    .input-area { padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+}
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="scanlines"></div>
+        <div class="vignette"></div>
+
+        <header class="header">
+            <div class="logo">
+                <span class="logo-text">J.A.R.V.I.S.</span>
+                <span class="logo-sub">Just A Rather Very Intelligent System</span>
+            </div>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot online" id="ai-status"></span>
+                    <span>AI</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot" id="voice-status"></span>
+                    <span>VOICE</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot online" id="net-status"></span>
+                    <span>NET</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="hud">
+            <div class="orb-container">
+                <div class="orb" id="orb">
+                    <div class="orb-ring ring-1"></div>
+                    <div class="orb-ring ring-2"></div>
+                    <div class="orb-ring ring-3"></div>
+                    <div class="orb-core" id="orb-core"></div>
+                </div>
+                <div class="state-label" id="state-label">SYSTEM READY</div>
+            </div>
+
+            <aside class="panel panel-left">
+                <div class="panel-title">SYSTEM STATUS</div>
+                <div class="info-row"><span>TIME</span><span id="sys-time">--:--:--</span></div>
+                <div class="info-row"><span>DATE</span><span id="sys-date">----</span></div>
+                <div class="info-row"><span>STATUS</span><span id="sys-status">ONLINE</span></div>
+                <div class="info-row"><span>MODE</span><span>ASSISTANT</span></div>
+            </aside>
+
+            <aside class="panel panel-right">
+                <div class="panel-title">QUICK TOOLS</div>
+                <button class="tool-btn" data-tool="time">🕐 Čas</button>
+                <button class="tool-btn" data-tool="date">📅 Datum</button>
+                <button class="tool-btn" data-tool="calc">🧮 Kalkulačka</button>
+                <button class="tool-btn" data-tool="help">❓ Nápověda</button>
+            </aside>
+        </main>
+
+        <section class="chat-section">
+            <div class="chat-messages" id="chat-messages">
+                <div class="message system">
+                    <div class="msg-content">Systém online. Vítejte, pane. Jsem připraven.</div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="input-area">
+            <div class="input-wrapper">
+                <button class="mic-btn" id="mic-btn" title="Stiskni a mluv">
+                    <svg viewBox="0 0 24 24" width="26" height="26">
+                        <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                </button>
+                <input type="text" id="text-input" placeholder="Napište příkaz nebo otázku…" autocomplete="off" enterkeyhint="send">
+                <button class="send-btn" id="send-btn">
+                    <svg viewBox="0 0 24 24" width="22" height="22">
+                        <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="voice-hint" id="voice-hint">Klepněte na mikrofon pro hlasový vstup</div>
+        </footer>
+    </div>
+
+<script>
+/**
+ * J.A.R.V.I.S. — Single-file version (iPad / iPhone ready)
+ */
+const STATES = {
+    IDLE: 'IDLE',
+    LISTENING: 'LISTENING',
+    THINKING: 'THINKING',
+    SPEAKING: 'SPEAKING',
+    ERROR: 'ERROR'
+};
+
+const STATE_LABELS = {
+    IDLE: 'SYSTEM READY',
+    LISTENING: 'LISTENING…',
+    THINKING: 'PROCESSING…',
+    SPEAKING: 'RESPONDING…',
+    ERROR: 'SYSTEM ERROR'
+};
+
+let currentState = STATES.IDLE;
+let conversationHistory = [];
+let userPreferences = {
+    language: 'cs',
+    name: 'pane',
+    assistantName: 'JARVIS',
+    voiceEnabled: true
+};
+
+const orb = document.getElementById('orb');
+const stateLabel = document.getElementById('state-label');
+const chatMessages = document.getElementById('chat-messages');
+const textInput = document.getElementById('text-input');
+const sendBtn = document.getElementById('send-btn');
+const micBtn = document.getElementById('mic-btn');
+const voiceHint = document.getElementById('voice-hint');
+const aiStatus = document.getElementById('ai-status');
+const voiceStatus = document.getElementById('voice-status');
+const sysTime = document.getElementById('sys-time');
+const sysDate = document.getElementById('sys-date');
+
+let recognition = null;
+let isListening = false;
+const synthesis = window.speechSynthesis;
+
+function initSpeech() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'cs-CZ';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            isListening = true;
+            setState(STATES.LISTENING);
+            micBtn.classList.add('listening');
+            voiceStatus.className = 'status-dot listening';
+            voiceHint.textContent = 'Poslouchám… mluvte teď';
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.trim();
+            if (transcript) {
+                textInput.value = transcript;
+                handleUserInput(transcript);
+            }
+        };
+
+        recognition.onerror = (event) => {
+            if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                addSystemMessage('Hlasový vstup selhal. Zkuste to znovu nebo pište.');
+            }
+            stopListening();
+        };
+
+        recognition.onend = () => stopListening();
+        voiceStatus.className = 'status-dot online';
+    } else {
+        voiceStatus.className = 'status-dot error';
+        voiceHint.textContent = 'Hlasový vstup v tomto prohlížeči není podporován';
+        micBtn.style.opacity = '0.4';
+    }
+}
+
+function startListening() {
+    if (!recognition || isListening) return;
+    try { recognition.start(); } catch (e) {}
+}
+
+function stopListening() {
+    isListening = false;
+    micBtn.classList.remove('listening');
+    if (currentState === STATES.LISTENING) setState(STATES.IDLE);
+    voiceStatus.className = recognition ? 'status-dot online' : 'status-dot error';
+    voiceHint.textContent = 'Klepněte na mikrofon pro hlasový vstup';
+}
+
+function speak(text) {
+    if (!userPreferences.voiceEnabled || !synthesis) return Promise.resolve();
+    return new Promise((resolve) => {
+        synthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'cs-CZ';
+        utter.rate = 1.05;
+        utter.pitch = 0.95;
+        const voices = synthesis.getVoices();
+        const czech = voices.find(v => v.lang.startsWith('cs'));
+        if (czech) utter.voice = czech;
+        utter.onstart = () => setState(STATES.SPEAKING);
+        utter.onend = () => { setState(STATES.IDLE); resolve(); };
+        utter.onerror = () => { setState(STATES.IDLE); resolve(); };
+        synthesis.speak(utter);
+    });
+}
+
+function setState(newState) {
+    currentState = newState;
+    stateLabel.textContent = STATE_LABELS[newState] || newState;
+    orb.className = 'orb';
+    if (newState === STATES.LISTENING) orb.classList.add('listening');
+    else if (newState === STATES.THINKING) orb.classList.add('thinking');
+    else if (newState === STATES.SPEAKING) orb.classList.add('speaking');
+    else if (newState === STATES.ERROR) orb.classList.add('error');
+
+    if (newState === STATES.THINKING) aiStatus.className = 'status-dot thinking';
+    else if (newState === STATES.ERROR) aiStatus.className = 'status-dot error';
+    else aiStatus.className = 'status-dot online';
+}
+
+function addMessage(role, content) {
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    div.innerHTML = `<div class="msg-content">${escapeHtml(content)}</div>`;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    conversationHistory.push({ role, content, ts: Date.now() });
+    if (conversationHistory.length > 40) conversationHistory.shift();
+    try { localStorage.setItem('jarvis_history', JSON.stringify(conversationHistory.slice(-25))); } catch(e){}
+}
+
+function addSystemMessage(content) {
+    const div = document.createElement('div');
+    div.className = 'message system';
+    div.innerHTML = `<div class="msg-content">${escapeHtml(content)}</div>`;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+function updateClock() {
+    const now = new Date();
+    sysTime.textContent = now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    sysDate.textContent = now.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+const tools = {
+    time() {
+        const now = new Date();
+        return `Je ${now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}.`;
+    },
+    date() {
+        const now = new Date();
+        const days = ['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
+        return `Dnes je ${days[now.getDay()]} ${now.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })}.`;
+    },
+    calc(expr) {
+        try {
+            const cleaned = expr.replace(/[^0-9+\-*/().%\s]/g, '');
+            if (!cleaned) return 'Zadejte matematický výraz.';
+            const result = Function('"use strict"; return (' + cleaned + ')')();
+            return `Výsledek: ${result}`;
+        } catch {
+            return 'Nepodařilo se spočítat. Zkuste například: 738 * 42';
+        }
+    },
+    note(text) {
+        const notes = JSON.parse(localStorage.getItem('jarvis_notes') || '[]');
+        notes.push({ text, ts: Date.now() });
+        localStorage.setItem('jarvis_notes', JSON.stringify(notes));
+        return `Poznámka uložena: „${text}“`;
+    },
+    help() {
+        return `Dostupné příkazy:
+• kolik je hodin / čas
+• jaké je datum
+• spočítej 123 × 45
+• zapamatuj si …
+• nápověda
+• kdo jsi`;
+    }
+};
+
+function processLocal(input) {
+    const lower = input.toLowerCase().trim();
+
+    if (/^(ahoj|čau|dobrý den|dobrý večer|hello|hi|hey)\b/.test(lower)) {
+        const hour = new Date().getHours();
+        let greet = 'Dobrý den';
+        if (hour < 12) greet = 'Dobré ráno';
+        else if (hour >= 18) greet = 'Dobrý večer';
+        return `${greet}, ${userPreferences.name}. Jak vám mohu pomoci?`;
+    }
+
+    if (/kolik (je )?hodin|jaký (je )?čas|time|hodiny/.test(lower)) return tools.time();
+    if (/jaké (je )?datum|jaký (je )?den|dnešní datum|date/.test(lower)) return tools.date();
+
+    const calcMatch = lower.match(/(spočítej|vypočítej|kolik je|calculate)\s+(.+)/i) || lower.match(/^(\d[\d\s+\-*/().%]+)$/);
+    if (calcMatch) return tools.calc(calcMatch[2] || calcMatch[1]);
+
+    const noteMatch = lower.match(/(zapamatuj si|ulož|poznámka|remember)\s+[:.]?\s*(.+)/i);
+    if (noteMatch) return tools.note(noteMatch[2]);
+
+    if (/nápověda|help|co umíš|příkazy/.test(lower)) return tools.help();
+    if (/jak se máš|status|jsi online|systém/.test(lower)) return 'Všechny systémy fungují nominálně. Jsem online a připraven, pane.';
+    if (/jak se jmenuješ|kdo jsi/.test(lower)) return `Jmenuji se ${userPreferences.assistantName} — Just A Rather Very Intelligent System. Jsem váš osobní asistent.`;
+
+    return `Rozumím, ${userPreferences.name}. Zpracovávám „${input}“. V této verzi mám lokální mozek. Zkuste například: „Kolik je hodin?“ nebo „Spočítej 100 * 25“.`;
+}
+
+async function handleUserInput(raw) {
+    const input = raw.trim();
+    if (!input) return;
+    textInput.value = '';
+    addMessage('user', input);
+    setState(STATES.THINKING);
+    await new Promise(r => setTimeout(r, 350 + Math.random() * 350));
+
+    let response;
+    try {
+        response = processLocal(input);
+    } catch (e) {
+        response = 'Omlouvám se, došlo k chybě při zpracování.';
+        setState(STATES.ERROR);
+    }
+
+    addMessage('assistant', response);
+    await speak(response);
+    setState(STATES.IDLE);
+}
+
+sendBtn.addEventListener('click', () => handleUserInput(textInput.value));
+textInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleUserInput(textInput.value); }
+});
+
+micBtn.addEventListener('click', () => {
+    if (isListening) {
+        if (recognition) recognition.stop();
+        stopListening();
+    } else {
+        startListening();
+    }
+});
+
+document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tool = btn.dataset.tool;
+        if (tool === 'time') handleUserInput('Kolik je hodin?');
+        else if (tool === 'date') handleUserInput('Jaké je dnes datum?');
+        else if (tool === 'calc') { textInput.value = 'Spočítej '; textInput.focus(); }
+        else if (tool === 'help') handleUserInput('Nápověda');
+    });
+});
+
+function boot() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('jarvis_history') || '[]');
+        if (Array.isArray(saved)) conversationHistory = saved;
+    } catch(e){}
+
+    initSpeech();
+    updateClock();
+    setInterval(updateClock, 1000);
+    setState(STATES.IDLE);
+
+    if (synthesis) {
+        synthesis.getVoices();
+        speechSynthesis.onvoiceschanged = () => synthesis.getVoices();
+    }
+    console.log('%c J.A.R.V.I.S. online ', 'background:#00d4ff;color:#000;font-weight:bold;padding:4px 8px;');
+}
+
+boot();
+</script>
+</body>
+</html>
